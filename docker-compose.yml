@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: taskuser
+      POSTGRES_PASSWORD: localpass
+      POSTGRES_DB: taskdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskuser -d taskdb"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://taskuser:localpass@db:5432/taskdb?schema=public
+      PORT: 3000
+    depends_on:
+      db:
+        condition: service_healthy
+    # Pehle tables banao, fir app chalao
+    command: sh -c "npx prisma migrate deploy && node src/index.js"
+
+volumes:
+  pgdata:
